@@ -18,7 +18,7 @@ class ProductService:
         result = await session.execute(select(User).where(User.id == telegram_id))
         user = result.scalar_one_or_none()
         if not user:
-            user = User(id=telegram_id, role=UserRole.BUYER, language_preference=default_lang)
+            user = User(id=telegram_id, role=UserRole.BUYER.value, language_preference=default_lang)
             session.add(user)
             await session.commit()
             await session.refresh(user)
@@ -34,7 +34,7 @@ class ProductService:
     @staticmethod
     async def register_seller(session: AsyncSession, telegram_id: int, raw_api_key: str, shop_name: str = "WB Seller") -> Seller:
         user = await ProductService.get_or_create_user(session, telegram_id)
-        user.role = UserRole.SELLER
+        user.role = UserRole.SELLER.value
 
         encrypted_key = encrypt_api_key(raw_api_key)
 

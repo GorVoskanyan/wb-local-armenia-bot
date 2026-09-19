@@ -15,7 +15,13 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # Telegram User ID
     role: Mapped[UserRole] = mapped_column(
-        SQLEnum(UserRole, name="userrole", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            UserRole,
+            name="userrole",
+            native_enum=True,
+            values_callable=lambda x: [e.value for e in x],
+            validate_strings=True
+        ),
         default=UserRole.BUYER,
         nullable=False
     )
