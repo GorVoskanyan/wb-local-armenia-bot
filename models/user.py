@@ -14,7 +14,11 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # Telegram User ID
-    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole), default=UserRole.BUYER, nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        SQLEnum(UserRole, name="userrole", values_callable=lambda x: [e.value for e in x]),
+        default=UserRole.BUYER,
+        nullable=False
+    )
     language_preference: Mapped[str] = mapped_column(String(5), default="hy", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
