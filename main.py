@@ -24,7 +24,13 @@ class DbSessionMiddleware:
 async def main():
     bot = Bot(token=settings.bot_token)
 
-    use_memory_storage = False
+    # Delete webhook if previously configured to allow long polling
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Cleared existing webhook.")
+    except Exception as e:
+        logger.warning(f"Could not delete webhook: {e}")
+
     try:
         redis = Redis.from_url(settings.redis_url, socket_timeout=1.0)
         await redis.ping()
