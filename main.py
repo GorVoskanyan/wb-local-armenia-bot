@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
@@ -22,8 +23,17 @@ class DbSessionMiddleware:
 
 async def main():
     bot = Bot(token=settings.bot_token)
-    redis = Redis.from_url(settings.redis_url)
-    storage = RedisStorage(redis=redis)
+
+    use_memory_storage = False
+    try:
+        redis = Redis.from_url(settings.redis_url, socket_timeout=1.0)
+        await redis.ping()
+        storage = RedisStorage(redis=redis)
+        logger.info("Connected to Redis storage.")
+    except Exception as e:
+        logger.warning(f"Could not connect to Redis ({e}), using MemoryStorage.")
+        storage = MemoryStorage()
+
     dp = Dispatcher(storage=storage)
 
     # Middleware setup
@@ -36,7 +46,7 @@ async def main():
     dp.include_router(buyer.router)
     dp.include_router(seller.router)
 
-    logger.info("Bot started successfully.")
+    logger.info("Bot started successfully and is polling for updates...")
     try:
         await dp.start_polling(bot)
     finally:
