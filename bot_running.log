@@ -164,3 +164,5 @@ FROM users
 WHERE users.id = ?]
 [parameters: (8680778661,)]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramNetworkError: HTTP Client says - Request timeout error
+WARNING:aiogram.dispatcher:Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8750769440)
