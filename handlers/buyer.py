@@ -52,18 +52,54 @@ def get_product_card_keyboard(product: Product, lang: str, cat_name: str = "", i
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+async def send_or_edit_product(callback: CallbackQuery, product: Product, caption: str, reply_markup: InlineKeyboardMarkup):
+    default_img = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500"
+    img_url = product.image_url if product.image_url else default_img
+
+    if callback.message.photo:
+        try:
+            await callback.message.edit_media(
+                media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
+                reply_markup=reply_markup
+            )
+        except TelegramBadRequest:
+            pass
+    else:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer_photo(
+            photo=img_url,
+            caption=caption,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
+
 @router.callback_query(F.data == "role_buyer")
 async def cb_role_buyer(callback: CallbackQuery, session: AsyncSession):
     user = await ProductService.get_or_create_user(session, callback.from_user.id)
     lang = user.language_preference
-    try:
-        await callback.message.edit_text(
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer(
             get_text("buyer_menu", lang),
             reply_markup=get_buyer_menu_keyboard(lang),
             parse_mode="Markdown"
         )
-    except TelegramBadRequest:
-        pass
+    else:
+        try:
+            await callback.message.edit_text(
+                get_text("buyer_menu", lang),
+                reply_markup=get_buyer_menu_keyboard(lang),
+                parse_mode="Markdown"
+            )
+        except TelegramBadRequest:
+            pass
     await callback.answer()
 
 
@@ -74,13 +110,23 @@ async def cb_buyer_categories(callback: CallbackQuery, session: AsyncSession):
     categories = await ProductService.get_categories(session)
 
     if not categories:
-        try:
-            await callback.message.edit_text(
+        if callback.message.photo:
+            try:
+                await callback.message.delete()
+            except TelegramBadRequest:
+                pass
+            await callback.message.answer(
                 get_text("no_categories", lang),
                 reply_markup=get_buyer_menu_keyboard(lang)
             )
-        except TelegramBadRequest:
-            pass
+        else:
+            try:
+                await callback.message.edit_text(
+                    get_text("no_categories", lang),
+                    reply_markup=get_buyer_menu_keyboard(lang)
+                )
+            except TelegramBadRequest:
+                pass
         await callback.answer()
         return
 
@@ -90,13 +136,23 @@ async def cb_buyer_categories(callback: CallbackQuery, session: AsyncSession):
     ]
     keyboard_buttons.append([InlineKeyboardButton(text=get_text("btn_main_menu", lang), callback_data="main_menu")])
 
-    try:
-        await callback.message.edit_text(
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer(
             get_text("select_category", lang),
             reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
         )
-    except TelegramBadRequest:
-        pass
+    else:
+        try:
+            await callback.message.edit_text(
+                get_text("select_category", lang),
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+            )
+        except TelegramBadRequest:
+            pass
     await callback.answer()
 
 
@@ -117,37 +173,30 @@ async def show_bargain_product(callback: CallbackQuery, session: AsyncSession, i
     products = await ProductService.get_bargain_deals(session, limit=20)
 
     if not products:
-        try:
-            await callback.message.edit_text(
+        if callback.message.photo:
+            try:
+                await callback.message.delete()
+            except TelegramBadRequest:
+                pass
+            await callback.message.answer(
                 get_text("no_products_in_cat", lang),
                 reply_markup=get_buyer_menu_keyboard(lang)
             )
-        except TelegramBadRequest:
-            pass
+        else:
+            try:
+                await callback.message.edit_text(
+                    get_text("no_products_in_cat", lang),
+                    reply_markup=get_buyer_menu_keyboard(lang)
+                )
+            except TelegramBadRequest:
+                pass
         await callback.answer()
         return
 
     product = products[index]
     caption = format_product_caption(product, lang)
     reply_markup = get_product_card_keyboard(product, lang, index=index, total=len(products), is_bargain=True)
-
-    default_img = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500"
-    img_url = product.image_url if product.image_url else default_img
-
-    try:
-        await callback.message.edit_media(
-            media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
-            reply_markup=reply_markup
-        )
-    except TelegramBadRequest:
-        pass
-    except Exception:
-        await callback.message.answer_photo(
-            photo=img_url,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
+    await send_or_edit_product(callback, product, caption, reply_markup)
     await callback.answer()
 
 
@@ -162,35 +211,28 @@ async def cb_show_category_product(callback: CallbackQuery, session: AsyncSessio
     products = await ProductService.get_products_by_category(session, category=cat_name, limit=20)
 
     if not products:
-        try:
-            await callback.message.edit_text(
+        if callback.message.photo:
+            try:
+                await callback.message.delete()
+            except TelegramBadRequest:
+                pass
+            await callback.message.answer(
                 get_text("no_products_in_cat", lang),
                 reply_markup=get_buyer_menu_keyboard(lang)
             )
-        except TelegramBadRequest:
-            pass
+        else:
+            try:
+                await callback.message.edit_text(
+                    get_text("no_products_in_cat", lang),
+                    reply_markup=get_buyer_menu_keyboard(lang)
+                )
+            except TelegramBadRequest:
+                pass
         await callback.answer()
         return
 
     product = products[index]
     caption = format_product_caption(product, lang)
     reply_markup = get_product_card_keyboard(product, lang, cat_name=cat_name, index=index, total=len(products), is_bargain=False)
-
-    default_img = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500"
-    img_url = product.image_url if product.image_url else default_img
-
-    try:
-        await callback.message.edit_media(
-            media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
-            reply_markup=reply_markup
-        )
-    except TelegramBadRequest:
-        pass
-    except Exception:
-        await callback.message.answer_photo(
-            photo=img_url,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
+    await send_or_edit_product(callback, product, caption, reply_markup)
     await callback.answer()

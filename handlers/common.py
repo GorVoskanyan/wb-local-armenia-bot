@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart
+from aiogram.exceptions import TelegramBadRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.i18n import get_text
@@ -47,10 +48,20 @@ async def cmd_start(message: Message, session: AsyncSession):
 async def cb_main_menu(callback: CallbackQuery, session: AsyncSession):
     user = await ProductService.get_or_create_user(session, callback.from_user.id)
     lang = user.language_preference
-    await callback.message.edit_text(
-        f"{get_text('welcome', lang)}\n\n{get_text('select_role', lang)}",
-        reply_markup=get_main_menu_keyboard(lang)
-    )
+    text = f"{get_text('welcome', lang)}\n\n{get_text('select_role', lang)}"
+    markup = get_main_menu_keyboard(lang)
+
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer(text, reply_markup=markup)
+    else:
+        try:
+            await callback.message.edit_text(text, reply_markup=markup)
+        except TelegramBadRequest:
+            pass
     await callback.answer()
 
 
@@ -58,10 +69,20 @@ async def cb_main_menu(callback: CallbackQuery, session: AsyncSession):
 async def cb_change_language(callback: CallbackQuery, session: AsyncSession):
     user = await ProductService.get_or_create_user(session, callback.from_user.id)
     lang = user.language_preference
-    await callback.message.edit_text(
-        get_text("choose_lang", lang),
-        reply_markup=get_lang_keyboard()
-    )
+    text = get_text("choose_lang", lang)
+    markup = get_lang_keyboard()
+
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer(text, reply_markup=markup)
+    else:
+        try:
+            await callback.message.edit_text(text, reply_markup=markup)
+        except TelegramBadRequest:
+            pass
     await callback.answer()
 
 
@@ -69,8 +90,18 @@ async def cb_change_language(callback: CallbackQuery, session: AsyncSession):
 async def cb_set_language(callback: CallbackQuery, session: AsyncSession):
     new_lang = callback.data.split("_")[-1]
     await ProductService.update_user_language(session, callback.from_user.id, new_lang)
-    await callback.message.edit_text(
-        f"{get_text('lang_changed', new_lang)} {new_lang.upper()}",
-        reply_markup=get_main_menu_keyboard(new_lang)
-    )
+    text = f"{get_text('lang_changed', new_lang)} {new_lang.upper()}"
+    markup = get_main_menu_keyboard(new_lang)
+
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await callback.message.answer(text, reply_markup=markup)
+    else:
+        try:
+            await callback.message.edit_text(text, reply_markup=markup)
+        except TelegramBadRequest:
+            pass
     await callback.answer()
