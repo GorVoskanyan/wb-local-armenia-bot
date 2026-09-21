@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from aiogram.exceptions import TelegramBadRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -21,7 +22,6 @@ def get_buyer_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
 
 
 def format_product_caption(product: Product, lang: str) -> str:
-    deeplink = settings.wb_deeplink_base_url.format(sku=product.wb_sku_id)
     caption = (
         f"📌 **{product.title}**\n\n"
         f"🏷 {get_text('original_price', lang)}: ~{product.price:,.0f} AMD~\n"
@@ -56,11 +56,14 @@ def get_product_card_keyboard(product: Product, lang: str, cat_name: str = "", i
 async def cb_role_buyer(callback: CallbackQuery, session: AsyncSession):
     user = await ProductService.get_or_create_user(session, callback.from_user.id)
     lang = user.language_preference
-    await callback.message.edit_text(
-        get_text("buyer_menu", lang),
-        reply_markup=get_buyer_menu_keyboard(lang),
-        parse_mode="Markdown"
-    )
+    try:
+        await callback.message.edit_text(
+            get_text("buyer_menu", lang),
+            reply_markup=get_buyer_menu_keyboard(lang),
+            parse_mode="Markdown"
+        )
+    except TelegramBadRequest:
+        pass
     await callback.answer()
 
 
@@ -71,10 +74,13 @@ async def cb_buyer_categories(callback: CallbackQuery, session: AsyncSession):
     categories = await ProductService.get_categories(session)
 
     if not categories:
-        await callback.message.edit_text(
-            get_text("no_categories", lang),
-            reply_markup=get_buyer_menu_keyboard(lang)
-        )
+        try:
+            await callback.message.edit_text(
+                get_text("no_categories", lang),
+                reply_markup=get_buyer_menu_keyboard(lang)
+            )
+        except TelegramBadRequest:
+            pass
         await callback.answer()
         return
 
@@ -84,10 +90,13 @@ async def cb_buyer_categories(callback: CallbackQuery, session: AsyncSession):
     ]
     keyboard_buttons.append([InlineKeyboardButton(text=get_text("btn_main_menu", lang), callback_data="main_menu")])
 
-    await callback.message.edit_text(
-        get_text("select_category", lang),
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
-    )
+    try:
+        await callback.message.edit_text(
+            get_text("select_category", lang),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+        )
+    except TelegramBadRequest:
+        pass
     await callback.answer()
 
 
@@ -108,10 +117,13 @@ async def show_bargain_product(callback: CallbackQuery, session: AsyncSession, i
     products = await ProductService.get_bargain_deals(session, limit=20)
 
     if not products:
-        await callback.message.edit_text(
-            get_text("no_products_in_cat", lang),
-            reply_markup=get_buyer_menu_keyboard(lang)
-        )
+        try:
+            await callback.message.edit_text(
+                get_text("no_products_in_cat", lang),
+                reply_markup=get_buyer_menu_keyboard(lang)
+            )
+        except TelegramBadRequest:
+            pass
         await callback.answer()
         return
 
@@ -127,6 +139,8 @@ async def show_bargain_product(callback: CallbackQuery, session: AsyncSession, i
             media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
             reply_markup=reply_markup
         )
+    except TelegramBadRequest:
+        pass
     except Exception:
         await callback.message.answer_photo(
             photo=img_url,
@@ -148,10 +162,13 @@ async def cb_show_category_product(callback: CallbackQuery, session: AsyncSessio
     products = await ProductService.get_products_by_category(session, category=cat_name, limit=20)
 
     if not products:
-        await callback.message.edit_text(
-            get_text("no_products_in_cat", lang),
-            reply_markup=get_buyer_menu_keyboard(lang)
-        )
+        try:
+            await callback.message.edit_text(
+                get_text("no_products_in_cat", lang),
+                reply_markup=get_buyer_menu_keyboard(lang)
+            )
+        except TelegramBadRequest:
+            pass
         await callback.answer()
         return
 
@@ -167,6 +184,8 @@ async def cb_show_category_product(callback: CallbackQuery, session: AsyncSessio
             media=InputMediaPhoto(media=img_url, caption=caption, parse_mode="Markdown"),
             reply_markup=reply_markup
         )
+    except TelegramBadRequest:
+        pass
     except Exception:
         await callback.message.answer_photo(
             photo=img_url,
