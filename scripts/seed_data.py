@@ -124,8 +124,7 @@ async def seed_database():
                     language_preference="hy"
                 )
                 session.add(user)
-                await session.commit()
-                await session.refresh(user)
+                await session.flush()
 
             # Check if seller exists
             res_seller = await session.execute(select(Seller).where(Seller.user_id == user.id))
@@ -139,8 +138,7 @@ async def seed_database():
                     is_verified=True
                 )
                 session.add(seller)
-                await session.commit()
-                await session.refresh(seller)
+                await session.flush()
 
             # Add products
             for prod_data in seller_info["products"]:
@@ -161,7 +159,8 @@ async def seed_database():
                     )
                     session.add(product)
 
-        await session.commit()
+            await session.commit()
+
         logger.info("Database successfully seeded with mock Armenian Wildberries sellers and products!")
 
 
